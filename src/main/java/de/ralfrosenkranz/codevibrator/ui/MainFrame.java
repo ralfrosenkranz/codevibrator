@@ -76,7 +76,6 @@ public class MainFrame extends JFrame {
     private final JTextArea logArea = new JTextArea();
 
     private final JCheckBox gitCommitCheck = new JCheckBox("Git add+commit (before send)", true);
-    private final JCheckBox autoPasteCheck = new JCheckBox("Auto-Paste (experimental)", false);
 
     public MainFrame(Path projectRoot, ConfigService config) {
         super("CodeVibrator");
@@ -93,6 +92,7 @@ public class MainFrame extends JFrame {
         ProjectConfig pc = config.loadProjectConfig();
         profileCombo.setSelectedItem(pc.activeProfile == null ? "default" : pc.activeProfile);
 
+
         // Left: directory tree
         treeModel = new DirTreeModel(projectRoot);
         dirTree = new JTree(treeModel);
@@ -101,6 +101,15 @@ public class MainFrame extends JFrame {
         treeRenderer = new DirTreeCellRenderer(config);
         treeRenderer.setProfile(activeProfile());
         dirTree.setCellRenderer(treeRenderer);
+
+        profileCombo.addActionListener(e -> {
+            ProjectConfig pc2 = config.loadProjectConfig();
+            pc2.activeProfile = activeProfile();
+            config.saveProjectConfig(pc2);
+            treeRenderer.setProfile(activeProfile());
+            dirTree.repaint();
+            refreshAll();
+        });
 
         dirTree.addTreeSelectionListener(e -> {
             TreePath p = e.getPath();
@@ -203,16 +212,8 @@ JSplitPane mainSplit = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, treeScroll, r
 
         c.gridx = 0; c.gridy = 4;
         top.add(gitCommitCheck, c);
-        c.gridx = 1;
-        top.add(autoPasteCheck, c);
-profileCombo.addActionListener(e -> {
-            ProjectConfig pc = config.loadProjectConfig();
-            pc.activeProfile = activeProfile();
-            config.saveProjectConfig(pc);
-            treeRenderer.setProfile(activeProfile());
-            dirTree.repaint();
-            refreshAll();
-        });
+
+        // Intentionally no browser automation: user pastes the prompt in the desired browser window.
 
         // selector table
         selectorTable.setFillsViewportHeight(true);
@@ -455,15 +456,6 @@ private void onSendToChatGPT() {
         try {
             Toolkit.getDefaultToolkit().getSystemClipboard().setContents(new StringSelection(prompt + "\n\nZIP_PATH: " + zipPath.toAbsolutePath()), null);
         } catch (Exception ignored) { }
-
-
-        // Open / activate ChatGPT browser (best-effort reuse of existing window)
-        try {
-            ChatGptBrowserSupport.openChatGpt(pc, log);
-        } catch (Exception ex) {
-            log.warnings.add("Cannot open/activate ChatGPT: " + ex.getMessage());
-        }
-
         // Open daily folder for manual zip upload (ChatGPT cannot read local files automatically)
         try {
             if (Desktop.isDesktopSupported()) {
@@ -472,23 +464,6 @@ private void onSendToChatGPT() {
             }
         } catch (Exception ex) {
             log.warnings.add("Cannot open daily folder: " + ex.getMessage());
-        }
-
-        // optional auto-paste
-        if (autoPasteCheck.isSelected()) {
-            try {
-                Robot r = new Robot();
-                boolean mac = System.getProperty("os.name","").toLowerCase().contains("mac");
-                int mod = mac ? java.awt.event.KeyEvent.VK_META : java.awt.event.KeyEvent.VK_CONTROL;
-                r.delay(500);
-                r.keyPress(mod);
-                r.keyPress(java.awt.event.KeyEvent.VK_V);
-                r.keyRelease(java.awt.event.KeyEvent.VK_V);
-                r.keyRelease(mod);
-                log.stats.add("Auto-paste attempted.");
-            } catch (Exception ex) {
-                log.warnings.add("Auto-paste failed (non-fatal): " + ex.getMessage());
-            }
         }
 
         showLogAndPersist(dailyFallback(), ts, "send", log);

@@ -17,11 +17,10 @@ import java.util.List;
  */
 public class DiffDialog extends JDialog {
 
-    private static final Color COLOR_INSERT = new Color(230, 255, 230);
-    private static final Color COLOR_DELETE = new Color(255, 230, 230);
-    private static final Color COLOR_CHANGE = new Color(255, 255, 200);
-
-    public DiffDialog(Window owner, String title, byte[] oldBytes, byte[] newBytes) {
+    private static final Color COLOR_INSERT = new Color(198, 239, 206); // #C6EFCE
+private static final Color COLOR_DELETE = new Color(255, 199, 206); // #FFC7CE
+private static final Color COLOR_CHANGE = new Color(255, 235, 156); // #FFEB9C
+public DiffDialog(Window owner, String title, byte[] oldBytes, byte[] newBytes) {
         super(owner, title, ModalityType.APPLICATION_MODAL);
         setSize(1000, 700);
         setLocationRelativeTo(owner);
@@ -33,7 +32,17 @@ public class DiffDialog extends JDialog {
 
         JTextArea left = new JTextArea(aligned.oldText());
         JTextArea right = new JTextArea(aligned.newText());
-        left.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
+                // Force a readable light scheme regardless of current Look&Feel (prevents low-contrast highlights in dark themes).
+        left.setBackground(Color.WHITE);
+        right.setBackground(Color.WHITE);
+        left.setForeground(Color.BLACK);
+        right.setForeground(Color.BLACK);
+        left.setSelectionColor(new Color(180, 205, 255));
+        right.setSelectionColor(new Color(180, 205, 255));
+        left.setSelectedTextColor(Color.BLACK);
+        right.setSelectedTextColor(Color.BLACK);
+
+left.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
         right.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
         left.setEditable(false);
         right.setEditable(false);
