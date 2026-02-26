@@ -1,97 +1,98 @@
-# CodeVibrator (MVP)
+# CodeVibrator
 
-Desktop-MVP als Java‑Swing App (Java 21, Maven). Fokus: lauffähig, klar getrennte Komponenten, schnell erweiterbar.
+## Projektstatus
 
-## Build / Run
+CodeVibrator ist kein MVP mehr, sondern ein funktional erweitertes, strukturell konsolidiertes Desktop-Tool zur strukturierten Code-Generierung und -Refaktorisierung im Dialog mit ChatGPT.
 
-Voraussetzungen: JDK 21, Maven 3.9+
+Das Projekt demonstriert die vollständige, iterative Umsetzung eines Product Requirements Documents (PRD) in produktionsnahen Quellcode – inklusive Architekturentscheidungen, Persistenzlogik, UI-Optimierung, Fehlerbehandlung und kontinuierlicher Verbesserung.
 
-```bash
-mvn -q clean package
-java -jar target/codevibrator-0.1.0-shaded.jar
-```
+---
 
-Projekt‑Root ist **das aktuelle Arbeitsverzeichnis**, in dem die App gestartet wird (`Paths.get("").toAbsolutePath()`).
+## Ursprung des Projekts
 
-## Projektstruktur
+Die fachliche Grundlage von CodeVibrator ist ein detailliertes **Product Requirements Document (PRD)**.
 
-- `de.ralfrosenkranz.codevibrator.app` – App‑Start, MainFrame
-- `de.ralfrosenkranz.codevibrator.ui` – Swing‑UI (Tree, Selektor‑Panel, File‑Tabelle, Dialoge)
-- `de.ralfrosenkranz.codevibrator.config` – JSON‑Modelle für `.code.vibrator`
-- `de.ralfrosenkranz.codevibrator.persist` – Laden/Speichern Home/Projekt/Verzeichnis‑Configs
-- `de.ralfrosenkranz.codevibrator.selectors` – Selektorauflösung, Glob‑Match, Konfliktlogik
-- `de.ralfrosenkranz.codevibrator.zip` – Export‑Zip Erstellung
-- `de.ralfrosenkranz.codevibrator.importer` – Import/Diff/Checks (human‑driven Zip Auswahl)
-- `de.ralfrosenkranz.codevibrator.git` – Git add/commit Wrapper (nur vor „Send to ChatGPT“)
-- `de.ralfrosenkranz.codevibrator.logging` – Result‑Logs (Datei + UI)
+Der gesamte Quellcode wurde nicht manuell „klassisch“ entwickelt, sondern **iterativ im Dialog mit ChatGPT** erzeugt, überprüft, angepasst und weiterentwickelt.
 
-## `.code.vibrator` JSON (Kurz)
+Das bedeutet konkret:
 
-Es gibt drei Ebenen:
+- Anforderungen wurden im PRD strukturiert definiert.
+- Implementierungsschritte wurden dialogisch geplant.
+- Code wurde generiert, geprüft, angepasst und verbessert.
+- Architekturentscheidungen wurden reflektiert und weiterentwickelt.
+- Abweichungen vom PRD wurden analysiert und konsolidiert.
 
-1) **Home‑Defaults**: `~/.code.vibrator`
-```json
-{
-  "textFileExtensions": ".java;.xml;...",
-  "textFileExactNames": "Makefile;Dockerfile;..."
-}
-```
-Wenn die Datei fehlt oder Listen leer sind, initialisiert die App sinnvolle Default‑Werte und schreibt die Datei.
+Das Projekt ist damit ein praktischer Beleg für den professionellen Einsatz generativer KI im Softwareentwicklungsprozess.
 
-2) **Projekt‑Root**: `./.code.vibrator`
-```json
-{
-  "activeProfile": "default",
-  "promptBase": "…",
-  "promptAddOns": ["…"],
-  "promptHistory": ["… (MVP: capped)"]
-}
-```
+---
 
-3) **Verzeichnis‑Konfig**: pro Verzeichnis optional `./path/.code.vibrator`
-```json
-{
-  "profiles": {
-    "default": {
-      "excludeFromZip": false,
-      "readonlyDir": false,
-      "selectorsText": "*.java;*.md",
-      "readonlyFilePatterns": "*.pem;*.key",
-      "selectorStates": {
-        "*.java": { "force": true, "active": true }
-      }
-    }
-  }
-}
-```
-Alle Profile teilen sich die gleiche Datei im jeweiligen Verzeichnis (`profiles`‑Map).
+## Zielsetzung
 
-### Vererbungs-/Selektorentscheidung (konservativ)
-- „selectorsText“ wird als **FORCE‑Liste** interpretiert: alle dort genannten Patterns werden auf dieser Ebene `force=true` und `active=true`.
-- Beim Multiplikations‑UI werden Patterns aus Parent‑Ebenen als Zeilen angezeigt. Child kann per FORCE/AKTIV übersteuern; ohne FORCE wird der Parent‑Aktivwert übernommen.
-- **Konflikt**: Datei matched sowohl effektive aktive als auch effektive inaktive Patterns ⇒ Warnsymbol; Entscheidung im MVP: **OR‑Logik** (mind. ein aktives Match ⇒ im Zip), wie gefordert.
+CodeVibrator unterstützt strukturierte Entwicklungsprozesse bei:
 
-### Zip‑Root‑Ordner Check (konservativ)
-„Zusätzlicher Root‑Ordner im Zip“ wird **fatal**, wenn _alle_ Zip‑Einträge denselben Top‑Level‑Ordner haben **und** dieser Ordner dem Projekt‑Root‑Verzeichnisnamen entspricht (typischer Fall `projectname/...`).
+- Code-Export in definierte Tages-Arbeitsverzeichnisse
+- Snapshot-Management
+- Diff-Analyse mit visueller Hervorhebung
+- Persistenter Dateiauswahl
+- Konfigurationsmanagement über Projektprofile
+- Systematischer Interaktion mit ChatGPT
 
-## Human‑in‑the‑loop (wichtig)
-Es gibt **keine** Automatisierung der ChatGPT‑Weboberfläche (kein DOM/Scraping). Der Button „Send to ChatGPT“:
-1) erzeugt Export‑Zip
-2) optional Git add+commit
-3) baut Prompt (Basis + AddOns + JSON‑Kontext)
-4) kopiert Prompt in Zwischenablage
-5) öffnet ChatGPT im Browser
+---
 
-## MVP‑Stand / Nächste Schritte
-MVP ist lauffähig und deckt Kernlogik ab (Selektoren/Vererbung, Exclude/Readonly, Export, Import‑Checks+Diff, Logs).
-Als nächstes ausbaubar:
-- Feingranulare UI‑Editierung für readonlyFilePatterns und Prompt‑AddOns
-- Bessere Executable‑Erkennung (POSIX Mode Bits, platform‑aware)
-- Performance: Caching der aufgelösten Konfiguration pro Verzeichnis
-- Mehr Profile UI (Anlegen/Löschen)
-- Import‑Dialog: „neueste Zip im Tagesverzeichnis vorschlagen“ (teilweise schon vorhanden)
+## Technologiestack
 
-## UI-Änderungen (MVP-Iteration)
-- FlatLaf als modernes Look&Feel; Auswahl über Menü „Look&Feel“.
-- Global-Panel oben: Profil + „Send to ChatGPT“ + „Import Result Zip“.
-- ChatGPT kann lokale Zip-Dateien nicht automatisch lesen: die App öffnet das Tagesverzeichnis für manuelles Upload.
+- Java 21 LTS
+- Maven
+- Swing-basierte Desktop-UI
+- JSON-basierte Konfigurationspersistenz
+- Plattformübergreifende Dateisystem-Integration
+
+---
+
+## Technische Kompetenzen, die das Projekt demonstriert
+
+Für HR- und Personalverantwortliche besonders relevant:
+
+### Architektur & Systemdesign
+- Strukturierte Umsetzung eines PRD in eine wartbare Codebasis
+- Modularisierung und klare Verantwortlichkeiten
+- Konfigurationspersistenz mit Rückwärtskompatibilität
+
+### KI-gestützte Entwicklung
+- Produktiver Einsatz von ChatGPT zur Code-Generierung
+- Iterative Qualitätssicherung im Dialog
+- Kontrollierte Integration generativer Ergebnisse in reale Software
+
+### Qualitätsbewusstsein
+- Kontrastoptimierung in UI-Komponenten
+- Fehleranalyse bei OS-übergreifender Integration
+- Nachhaltige Vereinfachung bei instabilen Features
+
+### Produktdenken
+- Fokus auf Nutzerfluss (Explorer statt instabile Browser-Automation)
+- Persistenz von Nutzerentscheidungen
+- Reduktion technischer Komplexität zugunsten von Robustheit
+
+---
+
+## Besonderheit des Projekts
+
+CodeVibrator ist nicht nur ein Tool – es ist ein dokumentierter Entwicklungsprozess, der zeigt:
+
+Ein strukturiertes PRD + iterative KI-gestützte Umsetzung = reproduzierbare, nachvollziehbare Softwareentwicklung.
+
+Das Projekt belegt, dass generative KI in professionellen Entwicklungsumgebungen nicht experimentell, sondern systematisch und kontrolliert eingesetzt werden kann.
+
+---
+
+## Aktueller Stand
+
+- Keine MVP-Phase mehr
+- Konsolidierte Kernfunktionalität
+- Persistente Benutzerkonfiguration
+- Stabilisierte Export-Workflows
+- Visuell verbesserte Diff-Analyse
+
+---
+
+© 2026 CodeVibrator
