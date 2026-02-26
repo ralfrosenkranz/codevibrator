@@ -15,4 +15,14 @@ public class ProjectConfig {
 
     /** UI Look&Feel selection (matches LafSupport.MENU_ITEMS entries). */
     public String uiLookAndFeel = LafSupport.LAF_FLAT_INTELLIJ;
+
+    /**
+     * Best-effort: try to bring an already-open ChatGPT browser window to front
+     * instead of opening a new one. If no existing window can be found, CodeVibrator
+     * will open the ChatGPT URL normally.
+     */
+    public boolean reuseExistingChatGptWindow = true;
+
+    /** ChatGPT URL to open. */
+    public String chatGptUrl = "https://chat.openai.com/";
 }

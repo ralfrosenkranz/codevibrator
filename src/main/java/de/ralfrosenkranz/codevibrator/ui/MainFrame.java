@@ -457,14 +457,11 @@ private void onSendToChatGPT() {
         } catch (Exception ignored) { }
 
 
-        // open browser
+        // Open / activate ChatGPT browser (best-effort reuse of existing window)
         try {
-            if (Desktop.isDesktopSupported()) {
-                Desktop.getDesktop().browse(java.net.URI.create("https://chat.openai.com/"));
-                log.stats.add("Browser opened.");
-            }
+            ChatGptBrowserSupport.openChatGpt(pc, log);
         } catch (Exception ex) {
-            log.warnings.add("Cannot open browser: " + ex.getMessage());
+            log.warnings.add("Cannot open/activate ChatGPT: " + ex.getMessage());
         }
 
         // Open daily folder for manual zip upload (ChatGPT cannot read local files automatically)
