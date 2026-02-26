@@ -16,5 +16,9 @@ public class ProjectConfig {
     /** UI Look&Feel selection (matches LafSupport.MENU_ITEMS entries). */
     public String uiLookAndFeel = LafSupport.LAF_FLAT_INTELLIJ;
 
-    // Intentionally no browser automation / URL management.
+    
+    /** Per-file overrides for project root (top level file selection), per profile: filename -> includeInZip */
+    public java.util.Map<String, java.util.Map<String, Boolean>> rootFileOverridesByProfile = new java.util.HashMap<>();
+
+// Intentionally no browser automation / URL management.
 }

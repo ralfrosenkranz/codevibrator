@@ -298,13 +298,13 @@ JSplitPane mainSplit = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, treeScroll, r
         selectedPathLabel.setText(selectedDir.toString());
         selectedPathHeader.setText(selectedDir.toString());
         DirectoryConfig dc = config.loadDirectoryConfig(selectedDir);
-        ProfileDirConfig pc = dc.profiles.get(activeProfile());
-        if (pc == null) pc = new ProfileDirConfig();
+        ProfileDirConfig pdc = dc.profiles.get(activeProfile());
+        if (pdc == null) pdc = new ProfileDirConfig();
 
-        excludeCheck.setSelected(pc.excludeFromZip);
-        readonlyDirCheck.setSelected(pc.readonlyDir);
-        selectorsTextField.setText(pc.selectorsText == null ? "" : pc.selectorsText);
-        readonlyPatternsField.setText(pc.readonlyFilePatterns == null ? "" : pc.readonlyFilePatterns);
+        excludeCheck.setSelected(pdc.excludeFromZip);
+        readonlyDirCheck.setSelected(pdc.readonlyDir);
+        selectorsTextField.setText(pdc.selectorsText == null ? "" : pdc.selectorsText);
+        readonlyPatternsField.setText(pdc.readonlyFilePatterns == null ? "" : pdc.readonlyFilePatterns);
 
         // build multiplied rows: use resolver resolved rules plus local force flags
         ResolvedDirRules rules = resolver.resolveRules(selectedDir, activeProfile());
@@ -312,9 +312,19 @@ JSplitPane mainSplit = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, treeScroll, r
             DirectoryConfig dcLocal = config.loadDirectoryConfig(selectedDir);
             ProfileDirConfig pcLocal = dcLocal.profiles.get(activeProfile());
             Map<String, Boolean> fileOverrides = (pcLocal == null || pcLocal.fileOverrides == null) ? Map.of() : pcLocal.fileOverrides;
+        
+            if (selectedDir.equals(config.projectRoot())) {
+                ProjectConfig pc = config.loadProjectConfig();
+                Map<String, Boolean> m = pc.rootFileOverridesByProfile.get(activeProfile());
+                fileOverrides = (m == null) ? Map.of() : m;
+            } else {
+                dcLocal = config.loadDirectoryConfig(selectedDir);
+                pcLocal = dcLocal.profiles.get(activeProfile());
+                fileOverrides = (pcLocal == null || pcLocal.fileOverrides == null) ? Map.of() : pcLocal.fileOverrides;
+            }
         List<SelectorRow> rows = new ArrayList<>();
         for (EffectiveSelector s : rules.selectors()) {
-            boolean force = isForcedLocal(pc, s.pattern());
+            boolean force = isForcedLocal(pdc, s.pattern());
             boolean active = s.active();
             rows.add(new SelectorRow(s.pattern(), force, active, true));
         }
@@ -357,9 +367,16 @@ JSplitPane mainSplit = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, treeScroll, r
         try {
             ResolvedDirRules rules = resolver.resolveRules(selectedDir, activeProfile());
 
-            DirectoryConfig dcLocal = config.loadDirectoryConfig(selectedDir);
-            ProfileDirConfig pcLocal = dcLocal.profiles.get(activeProfile());
-            Map<String, Boolean> fileOverrides = (pcLocal == null || pcLocal.fileOverrides == null) ? Map.of() : pcLocal.fileOverrides;
+            Map<String, Boolean> fileOverrides;
+            if (selectedDir.equals(config.projectRoot())) {
+                ProjectConfig pc = config.loadProjectConfig();
+                Map<String, Boolean> m = pc.rootFileOverridesByProfile.get(activeProfile());
+                fileOverrides = (m == null) ? Map.of() : m;
+            } else {
+                DirectoryConfig dcLocal = config.loadDirectoryConfig(selectedDir);
+                ProfileDirConfig pcLocal = dcLocal.profiles.get(activeProfile());
+                fileOverrides = (pcLocal == null || pcLocal.fileOverrides == null) ? Map.of() : pcLocal.fileOverrides;
+            }
 
             List<FileRow> rows = new ArrayList<>();
             try (DirectoryStream<Path> ds = Files.newDirectoryStream(selectedDir)) {
@@ -808,17 +825,33 @@ private void addLafItem(JMenu menu, ButtonGroup bg, String name, String selected
 
 private void saveFileOverridesFromTable() {
     if (selectedDir == null) return;
+
     // Store only overrides different from selector-derived default
-    config.updateProfileDirConfig(selectedDir, activeProfile(), pc -> {
-        pc.fileOverrides.clear();
+    if (selectedDir.equals(config.projectRoot())) {
+        ProjectConfig pc = config.loadProjectConfig();
+        Map<String, Boolean> m = pc.rootFileOverridesByProfile.computeIfAbsent(activeProfile(), k -> new java.util.HashMap<>());
+        m.clear();
         for (int i = 0; i < fileTableModel.getRowCount(); i++) {
             FileRow r = fileTableModel.getRow(i);
             boolean def = r.decision.inZip();
             if (r.includeInZip != def) {
-                pc.fileOverrides.put(r.name, r.includeInZip);
+                m.put(r.name, r.includeInZip);
             }
         }
-        return pc;
+        config.saveProjectConfig(pc);
+        return;
+    }
+
+    config.updateProfileDirConfig(selectedDir, activeProfile(), pdc -> {
+        pdc.fileOverrides.clear();
+        for (int i = 0; i < fileTableModel.getRowCount(); i++) {
+            FileRow r = fileTableModel.getRow(i);
+            boolean def = r.decision.inZip();
+            if (r.includeInZip != def) {
+                pdc.fileOverrides.put(r.name, r.includeInZip);
+            }
+        }
+        return pdc;
     });
 }
 
