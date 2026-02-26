@@ -583,9 +583,12 @@ private void onSendToChatGPT() {
     }
 
     private void showLogAndPersist(Path dailyDir, String ts, String prefix, ResultLog log) {
-        try {
-            logService.write(dailyDir, ts, prefix, log);
-        } catch (IOException ignored) { }
+        // requirement: do not write send_result_<timestamp>.txt anymore (UI display remains)
+        if (!"send".equals(prefix)) {
+            try {
+                logService.write(dailyDir, ts, prefix, log);
+            } catch (IOException ignored) { }
+        }
         logArea.setText(log.toText());
     }
 

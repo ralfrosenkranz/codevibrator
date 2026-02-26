@@ -5,13 +5,14 @@ import de.ralfrosenkranz.codevibrator.selectors.FileDecider;
 import de.ralfrosenkranz.codevibrator.selectors.FileDecision;
 import de.ralfrosenkranz.codevibrator.selectors.ResolvedDirRules;
 import de.ralfrosenkranz.codevibrator.selectors.SelectorResolver;
-import de.ralfrosenkranz.codevibrator.selectors.*;
 
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.file.*;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -32,7 +33,9 @@ public class ZipExportService {
     }
 
     public Path exportZip(Path dailyDir, String timestamp, String profile) throws IOException {
-        Path zipPath = dailyDir.resolve("export_" + profile + "_" + timestamp + ".zip");
+        int snapshotNo = nextSnapshotNumber(dailyDir);
+        String no2 = String.format("%02d", snapshotNo);
+        Path zipPath = dailyDir.resolve("snapshot_" + timestamp + "_" + profile + "_" + no2 + ".zip");
         try (OutputStream os = Files.newOutputStream(zipPath);
              ZipOutputStream zos = new ZipOutputStream(os)) {
 
@@ -74,5 +77,41 @@ public class ZipExportService {
                     });
         }
         return zipPath;
+    }
+
+    private static final Pattern NUMBER_PATTERN =
+            Pattern.compile(
+                    "^snapshot_\\d{4}_\\d{2}_\\d{2}_\\d{2}_\\d{2}_[^_]+_(\\d{2})(?:[^/]*)?\\.zip$",
+                    Pattern.CASE_INSENSITIVE
+            );
+    /**
+     * Snapshot numbering is per day (per dailyDir) and shared across profiles.
+     * Starts at 01 and increments by scanning existing snapshot zip files.
+     */
+    private int nextSnapshotNumber(Path dailyDir) {
+        int max = 0;
+
+        // The next number is derived from the files already present in the daily directory.
+        // This is intentionally robust, so that if another process (e.g. ChatGPT result zips)
+        // already created snapshot zip files with higher numbers, numbering continues correctly.
+        try (DirectoryStream<Path> ds = Files.newDirectoryStream(dailyDir, "*.zip")) {
+            for (Path p : ds) {
+                String name = p.getFileName().toString();
+                if (!name.toLowerCase().startsWith("snapshot_")) continue;
+
+                Matcher m = NUMBER_PATTERN.matcher(name);
+                if (!m.matches()) continue;
+
+                try {
+                    int n = Integer.parseInt(m.group(1));
+                    if (n > max) max = n;
+                } catch (NumberFormatException ignored) { }
+            }
+        } catch (IOException ignored) {
+            // If scanning fails, fall back to 1 (still produces a valid name).
+            return 1;
+        }
+
+        return max + 1;
     }
 }
