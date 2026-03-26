@@ -142,6 +142,7 @@ JSplitPane mainSplit = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, treeScroll, r
         add(mainSplit, BorderLayout.CENTER);
 
         installAutoSaveListeners();
+        installRefreshOnWindowFocus();
 
         // init selection: root
         expandAllTreeRows();
@@ -171,6 +172,10 @@ JSplitPane mainSplit = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, treeScroll, r
         JMenuItem imp = new JMenuItem("Import Result Zip...");
         imp.addActionListener(e -> onImportZip());
         m.add(imp);
+
+        JMenuItem refresh = new JMenuItem("Refresh");
+        refresh.addActionListener(e -> refreshTreeAndFiles());
+        m.add(refresh);
 
         JMenuItem exit = new JMenuItem("Exit");
         exit.addActionListener(e -> dispose());
@@ -290,6 +295,44 @@ JSplitPane mainSplit = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, treeScroll, r
         loadDirConfigToUI();
         refreshFileTable();
         dirTree.repaint();
+    }
+
+    private void refreshTreeAndFiles() {
+        Path dirToRestore = selectedDir == null ? projectRoot : selectedDir;
+        treeModel.buildRecursively((DefaultMutableTreeNode) treeModel.getRoot());
+        expandAllTreeRows();
+
+        TreePath restoredPath = findTreePath(dirToRestore);
+        if (restoredPath != null) {
+            dirTree.setSelectionPath(restoredPath);
+            dirTree.scrollPathToVisible(restoredPath);
+        } else {
+            selectedDir = projectRoot;
+            dirTree.setSelectionRow(0);
+        }
+
+        refreshAll();
+    }
+
+    private TreePath findTreePath(Path target) {
+        DefaultMutableTreeNode root = (DefaultMutableTreeNode) treeModel.getRoot();
+        return findTreePath(root, target);
+    }
+
+    private TreePath findTreePath(DefaultMutableTreeNode node, Path target) {
+        Object userObject = node.getUserObject();
+        if (userObject instanceof DirTreeModel.DirNode dn && dn.path().equals(target)) {
+            return new TreePath(node.getPath());
+        }
+
+        for (int i = 0; i < node.getChildCount(); i++) {
+            DefaultMutableTreeNode child = (DefaultMutableTreeNode) node.getChildAt(i);
+            TreePath found = findTreePath(child, target);
+            if (found != null) {
+                return found;
+            }
+        }
+        return null;
     }
 
     private void loadDirConfigToUI() {
@@ -656,6 +699,28 @@ private JPanel buildGlobalPanel() {
     p.add(rootLbl, BorderLayout.EAST);
 
     return p;
+}
+
+
+private void installRefreshOnWindowFocus() {
+    addWindowFocusListener(new java.awt.event.WindowAdapter() {
+        @Override
+        public void windowGainedFocus(java.awt.event.WindowEvent e) {
+            refreshTreeAndFiles();
+        }
+    });
+
+    addWindowListener(new java.awt.event.WindowAdapter() {
+        @Override
+        public void windowActivated(java.awt.event.WindowEvent e) {
+            refreshTreeAndFiles();
+        }
+
+        @Override
+        public void windowDeiconified(java.awt.event.WindowEvent e) {
+            refreshTreeAndFiles();
+        }
+    });
 }
 
 

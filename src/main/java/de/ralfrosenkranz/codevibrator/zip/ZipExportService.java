@@ -53,13 +53,24 @@ public class ZipExportService {
 
                             // per-file override at this directory level
                             try {
-                                var dcLocal = config.loadDirectoryConfig(parent);
-                                var pcLocal = dcLocal.profiles.get(profile);
-                                if (pcLocal != null && pcLocal.fileOverrides != null) {
-                                    Boolean ov = pcLocal.fileOverrides.get(p.getFileName().toString());
-                                    if (ov != null) {
-                                        d = new FileDecision(ov, d.conflict(), d.blocked(), d.reason() + " (file override)");
+                                Boolean ov = null;
+                                if (parent.equals(root)) {
+                                    var projectConfig = config.loadProjectConfig();
+                                    if (projectConfig.rootFileOverridesByProfile != null) {
+                                        var rootOverrides = projectConfig.rootFileOverridesByProfile.get(profile);
+                                        if (rootOverrides != null) {
+                                            ov = rootOverrides.get(p.getFileName().toString());
+                                        }
                                     }
+                                } else {
+                                    var dcLocal = config.loadDirectoryConfig(parent);
+                                    var pcLocal = dcLocal.profiles.get(profile);
+                                    if (pcLocal != null && pcLocal.fileOverrides != null) {
+                                        ov = pcLocal.fileOverrides.get(p.getFileName().toString());
+                                    }
+                                }
+                                if (ov != null) {
+                                    d = new FileDecision(ov, d.conflict(), d.blocked(), d.reason() + " (file override)");
                                 }
                             } catch (Exception ignored) { }
 
