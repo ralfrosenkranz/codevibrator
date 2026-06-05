@@ -15,7 +15,10 @@ public class GitService {
                     .directory(dir.toFile())
                     .redirectErrorStream(true)
                     .start();
-            String out = new String(p.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+            String out;
+            try (var in = p.getInputStream()) {
+                out = new String(in.readAllBytes(), StandardCharsets.UTF_8);
+            }
             int code = p.waitFor();
             if (code == 0 && out.toLowerCase().contains("true")) return new GitResult(true, "Git repo ok");
             return new GitResult(false, out.trim());
@@ -38,7 +41,10 @@ public class GitService {
                     .directory(dir.toFile())
                     .redirectErrorStream(true)
                     .start();
-            String out = new String(p.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+            String out;
+            try (var in = p.getInputStream()) {
+                out = new String(in.readAllBytes(), StandardCharsets.UTF_8);
+            }
             int code = p.waitFor();
             return new GitResult(code == 0, out.trim());
         } catch (IOException | InterruptedException e) {

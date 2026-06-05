@@ -19,8 +19,8 @@ public class DirTreeModel extends DefaultTreeModel {
     public void buildRecursively(DefaultMutableTreeNode node) {
         node.removeAllChildren();
         DirNode dn = (DirNode) node.getUserObject();
-        try {
-            List<Path> dirs = Files.list(dn.path)
+        try (var stream = Files.list(dn.path)) {
+            List<Path> dirs = stream
                     .filter(Files::isDirectory)
                     .filter(p -> !p.getFileName().toString().equals(".git"))
                     .sorted(Comparator.comparing(p -> p.getFileName().toString().toLowerCase()))
