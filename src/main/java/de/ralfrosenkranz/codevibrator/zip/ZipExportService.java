@@ -40,8 +40,7 @@ public class ZipExportService {
              ZipOutputStream zos = new ZipOutputStream(os)) {
 
             Path root = config.projectRoot();
-            try (var stream = Files.walk(root)) {
-                stream
+            Files.walk(root)
                     .filter(Files::isRegularFile)
                     .filter(p -> !p.getFileName().toString().equals(".code.vibrator"))
                     .filter(p -> !p.toString().contains(FileSystems.getDefault().getSeparator() + ".git" + FileSystems.getDefault().getSeparator()))
@@ -87,7 +86,6 @@ public class ZipExportService {
                             throw new RuntimeException(ex);
                         }
                     });
-            }
         }
         return zipPath;
     }

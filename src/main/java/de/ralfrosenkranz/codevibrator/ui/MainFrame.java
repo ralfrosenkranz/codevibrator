@@ -509,12 +509,12 @@ private void onSendToChatGPT() {
         if (pc.promptHistory.size() > 50) pc.promptHistory = pc.promptHistory.subList(0, 50);
         config.saveProjectConfig(pc);
 
-        Toolkit.getDefaultToolkit().getSystemClipboard().setContents(new StringSelection(prompt), null);
+        // clipboard copy removed
         log.stats.add("Prompt copied to clipboard.");
 
         // Also copy zip absolute path for convenience
         try {
-            Toolkit.getDefaultToolkit().getSystemClipboard().setContents(new StringSelection(prompt + "\n\nZIP_PATH: " + zipPath.toAbsolutePath()), null);
+            // clipboard copy removed
         } catch (Exception ignored) { }
         // Open daily folder for manual zip upload (ChatGPT cannot read local files automatically)
         try {
